@@ -1,0 +1,3068 @@
+---
+title: "Goby Reef Comparisons Sociality: All Manuscript Analyses"
+author: "Catheline Froehlich"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: word_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+
+#set the working directory
+setwd("C:/Users/shell/OneDrive - University of Wollongong/U of WOllongong/Manuscript_DataAnalysisUOW/GobyReefSystemComparisons-LIPNGOTI/DataAnalysis")
+
+
+#FORM OF SOCIALITY ANALYSIS
+
+#load specific packages within r for data manipulation and analysis
+#VGAM package is used for multinomial logistic regression. check out help: https://rcompanion.org/handbook/H_08.html
+list.of.packages <- c("tidyverse","VGAM","car","rcompanion")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+#load package "car" needed for chisq stats details for vglm()
+#load package "rcompanion" needed for rsquared value for vglm()
+
+
+#get spreadsheet into R as dataframe(needs to be csv file for this function)
+social = read.csv("GobyReefSysComp_grpSz_SocialAsocialMixedPlusPrePostDisturbances_v1.csv")
+#spit out structure of the dataframe
+str(social)
+
+#rename variables
+social = rename(social,!!c(reef = "Reef",avgdiam="Avg.Diam",popn = "PopN.AdultsAndJuveniles.ComboSpp",nspp="X.sppTogether",status="Solo.Pair.GroupSocial.Mixed",detailstatus="Explain.Solo.Pair.GroupSocial.Mixed"))
+#change variable to factor
+social$reef = as.factor(social$reef)
+social$GS = as.numeric(social$GS)
+social$Reef.Spaced = as.factor(social$Reef.Spaced)
+social$Reef.Initial = as.factor(social$Reef.Initial)
+social$PrePost = as.factor(social$PrePost)
+social$PrePostxReef = as.factor(social$PrePostxReef)
+
+#spit out structure of the dataframe
+str(social)           #gives summary stats: min, max, mean, quartiles,... 
+#head() and tail() give you the beginning rows and end rows, respectively, of data frame
+summary(social)
+
+##explanation of likelihood ratio test as goodness-of-fit test here: https://cran.r-project.org/web/packages/XNomial/vignettes/XNomial.html
+#for nominal dependent variable with more than 2 levels, needs to do multinomial logistic regression in glm with binomial family
+#glm needed with binomial family for nominal dependent variable (categorical variable for no intrinsic order)
+
+#DO ONLY DATASET FOR Before any disturbances
+social.pre=subset(social,social$PrePost == "Pre" | social$PrePost == "")
+str(social.pre)
+
+#ONLY IF CORAL AT LEAST 10avgDiameter
+#DO ONLY DATASET FOR BEFORE and after DISTURBANCES so not including PNG
+social.10.pre=subset(social.pre,social.pre$avgdiam >=10)
+str(social.10.pre)
+
+#check covariates that I think are most important all together
+ft.social.10.pre = vglm(status~avgdiam+reef,family=multinomial(refLevel="S"),data=social.10.pre)
+#get stats output
+summary(ft.social.10.pre)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.10.pre,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.10.pre)
+
+
+#without coral size
+ft.social.10.pre = vglm(status~reef,family=multinomial(refLevel="S"),data=social.10.pre)
+#get stats output
+summary(ft.social.10.pre)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.10.pre,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.10.pre)
+
+
+level_order <- factor(social.10.pre$status, level = c('M', 'G', 'P','S'))
+#to check the order of levels: levels(social.10figtest$dcsz)
+#create frequency plots of both factors
+ggplot(social.10.pre,aes(x=avgdiam,group=level_order,fill=level_order))+
+  geom_boxplot()+
+  xlab('Average Coral Diameter (cm)')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #chg font size
+  theme(text = element_text(size = 20))+
+  theme(axis.text = element_text(size = 20))  +
+  #remove legend
+  theme(legend.position="none")
+
+#to check the order of levels: levels(social.10figtest$dcsz)
+#create frequency plots of both factors
+ggplot(social.10.pre,aes(x=avgdiam,group=level_order,fill=level_order))+
+  geom_boxplot()+
+  xlab('Average Diameter (cm)')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #chg font size
+  theme(text = element_text(size = 20))+
+  theme(axis.text = element_text(size = 20))
+
+
+#to check the order of levels: levels(social.10figtest$dcsz)
+#create frequency plots of both factors
+ggplot(social.10.pre,aes(x=Reef.Spaced,group=status,fill=detailstatus))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+#to check the order of levels: 
+levels(social.10.pre$Reef.Spaced)
+#change order of levels
+level_order <- factor(social.10.pre$Reef.Spaced, level = c('Papua New Guinea', 'Lizard Island', 'One Tree Island'))
+#create frequency plots of both factors
+ggplot(social.10.pre,aes(x=level_order,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+#NOW ADDED LI 2022 DATA ALSO TO HAVE 5-YR MARK
+#get spreadsheet into R as dataframe(needs to be csv file for this function)
+  social.plus22 = read.csv("GobyReefSysComp_grpSz_SocialAsocialMixedPlusPrePostDisturbances_v2_plus2022fromLizard.csv")
+#spit out structure of the dataframe
+str(social.plus22)
+
+#rename variables
+social.plus22 = rename(social.plus22,!!c(reef = "Reef",avgdiam="Avg.Diam",popn = "PopN.AdultsAndJuveniles.ComboSpp",nspp="X.sppTogether",status="Solo.Pair.GroupSocial.Mixed",detailstatus="Explain.Solo.Pair.GroupSocial.Mixed"))
+#change variable to factor
+social.plus22$reef = as.factor(social.plus22$reef)
+social.plus22$GS = as.numeric(social.plus22$GS)
+social.plus22$Reef.Spaced = as.factor(social.plus22$Reef.Spaced)
+social.plus22$Reef.Initial = as.factor(social.plus22$Reef.Initial)
+social.plus22$PrePost = as.factor(social.plus22$PrePost)
+social.plus22$PrePostxReef = as.factor(social.plus22$PrePostxReef)
+social.plus22$detailstatus=as.factor(social.plus22$detailstatus)
+social.plus22$Year=as.factor(social.plus22$Year)
+#spit out structure of the dataframe
+str(social.plus22)           #gives summary stats: min, max, mean, quartiles,... 
+#head() and tail() give you the beginning rows and end rows, respectively, of data frame
+summary(social.plus22)
+
+
+#DO ONLY DATASET FOR BEFORE and after DISTURBANCES so not including PNG
+social.plus22.prepost=subset(social.plus22,social.plus22$PrePost == "Pre" | social.plus22$PrePost == "Post")
+str(social.plus22.prepost)
+
+#ONLY IF CORAL AT LEAST 10avgDiameter
+#DO ONLY DATASET FOR BEFORE and after DISTURBANCES so not including PNG
+social.plus22.prepost.10=subset(social.plus22.prepost,social.plus22.prepost$avgdiam >=10)
+str(social.plus22.prepost.10)
+
+#check covariates that I think are most important all together
+ft.social.plus22.prepost.10 = vglm(status~avgdiam+reef*PrePost,family=multinomial(refLevel="S"),data=social.plus22.prepost.10)
+#get stats output
+summary(ft.social.plus22.prepost.10)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.plus22.prepost.10,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.plus22.prepost.10)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.social.plus22) #not working properly b/c variable not numeric
+
+#without coral size
+ft.social.plus22.prepost.10 = vglm(status~reef*PrePost,family=multinomial(refLevel="S"),data=social.plus22.prepost.10)
+#get stats output
+summary(ft.social.plus22.prepost.10)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.plus22.prepost.10,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.plus22.prepost.10)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.social.plus22) #not working properly b/c variable not numeric
+
+#ONLY IF CORAL AT LEAST 10avgDiameter
+#DO ONLY DATASET FOR BEFORE and after DISTURBANCES so not including PNG
+social.plus22.prepost.10.LI=subset(social.plus22.prepost.10,social.plus22.prepost.10$reef=="LizardIsland")
+str(social.plus22.prepost.10.LI)
+social.plus22.prepost.10.LI=subset(social.plus22.prepost.10,social.plus22.prepost.10$PrePost=="Post")
+str(social.plus22.prepost.10.LI)
+
+#check covariates that I think are most important all together
+ft.social.plus22.prepost.10.LI = vglm(status~avgdiam+Year,family=multinomial(refLevel="S"),data=social.plus22.prepost.10.LI)
+#get stats output
+summary(ft.social.plus22.prepost.10.LI)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.plus22.prepost.10.LI,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.plus22.prepost.10.LI)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.social.plus22) #not working properly b/c variable not numeric
+
+
+#without coral size
+ft.social.plus22.prepost.10.LI = vglm(status~Year,family=multinomial(refLevel="S"),data=social.plus22.prepost.10.LI)
+#get stats output
+summary(ft.social.plus22.prepost.10.LI)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.social.plus22.prepost.10.LI,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.social.plus22.prepost.10.LI)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.social.plus22) #not working properly b/c variable not numeric
+
+#to check the order of levels: levels(social.plus22figtest$dcsz)
+#create frequency plots of both factors
+ggplot(social.plus22.prepost.10,aes(x=Reef.Spaced,group=status,fill=detailstatus))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+#to check the order of levels: 
+levels(social.plus22.prepost.10$reef)
+levels(social.plus22.prepost.10$PrePostxReef)
+#change order of levels
+level_order_prepost <- factor(social.plus22.prepost.10$PrePostxReef, level = c('PreLI','PostLI2020','PostLI2022','PreOTI','PostOTI','PNG'))
+level_order_pre <- factor(social.plus22.prepost.10$Reef.Spaced, level = c('Papua New Guinea', 'Lizard Island', 'One Tree Island'))
+#create frequency plots of both factors
+ggplot(social.plus22.prepost.10,aes(x=level_order_prepost,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+  #remove legend
+  #theme(legend.position="none")
+
+#create frequency plots of both factors
+ggplot(social.plus22.prepost.10,aes(x=level_order_prepost,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+
+#NOW INCLUDE PNG BUT CANT DO ACTUAL ANALYSIS BECAUSE ONLY ONE TIME STAMP FOR PNG SO MODEL won't run
+#ONLY IF CORAL AT LEAST 10avgDiameter
+#DO ONLY DATASET FOR BEFORE and after DISTURBANCES so not including PNG
+social.plus22.10=subset(social.plus22,social.plus22$avgdiam >=10)
+str(social.plus22.10)
+
+#to check the order of levels: levels(social.plus22figtest$dcsz)
+#create frequency plots of both factors
+ggplot(social.plus22.10,aes(x=Reef.Spaced,group=status,fill=detailstatus))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+#to check the order of levels: 
+levels(social.plus22.10$reef)
+levels(social.plus22.10$PrePostxReef)
+#change order of levels
+level_order_prepost <- factor(social.plus22.10$PrePostxReef, level = c('PNG','PreLI','PostLI2020','PostLI2022','PreOTI','PostOTI'))
+level_order_pre <- factor(social.plus22.10$Reef.Spaced, level = c('Papua New Guinea', 'Lizard Island', 'One Tree Island'))
+#create frequency plots of both factors
+ggplot(social.plus22.10,aes(x=level_order_prepost,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef by Time Point')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change labels
+  ylab("Proportion")+
+  #change font on labels
+  theme(text=element_text(size=12, family="calibri"),axis.text=element_text(size=12,color="black",family="calibri"),legend.text=element_text(size=12,color="black",family="calibri")) +
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+
+social.plus22.10.PNG=subset(social.plus22.10,social.plus22.10$reef=="PapuaNewGuinea")
+str(social.plus22.10.PNG)
+
+ggplot(social.plus22.10.PNG,aes(x=reef,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef by Time Point')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change labels
+  ylab("Proportion")+
+  #change font on labels
+  theme(text=element_text(size=12, family="calibri"),axis.text=element_text(size=12,color="black",family="calibri"),legend.text=element_text(size=12,color="black",family="calibri")) +
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+
+
+social.plus22.10.LI=subset(social.plus22.10,social.plus22.10$reef == "LizardIsland")
+str(social.plus22.10.LI)
+level_order_prepost <- factor(social.plus22.10.LI$PrePostxReef, level = c('PNG','PreLI','PostLI2020','PostLI2022','PreOTI','PostOTI'))
+
+ggplot(social.plus22.10.LI,aes(x=level_order_prepost,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef by Time Point')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change labels
+  ylab("Proportion")+
+  #change font on labels
+  theme(text=element_text(size=12, family="calibri"),axis.text=element_text(size=12,color="black",family="calibri"),legend.text=element_text(size=12,color="black",family="calibri")) +
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+
+
+social.plus22.10.OTI=subset(social.plus22.10,social.plus22.10$reef == "OneTreeIsland")
+str(social.plus22.10.OTI)
+level_order_prepost <- factor(social.plus22.10.OTI$PrePostxReef, level = c('PNG','PreLI','PostLI2020','PostLI2022','PreOTI','PostOTI'))
+
+ggplot(social.plus22.10.OTI,aes(x=level_order_prepost,group=status,fill=detailstatus))+
+  geom_bar(position="fill")+
+  xlab('Reef by Time Point')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Form of Sociality")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change labels
+  ylab("Proportion")+
+  #change font on labels
+  theme(text=element_text(size=12, family="calibri"),axis.text=element_text(size=12,color="black",family="calibri"),legend.text=element_text(size=12,color="black",family="calibri")) +
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("darkgreen","coral1","cyan","darkorchid2"))
+
+
+#GROUP SIZE X DOMINANT SIZE X CORAL SIZE ANALYSIS
+
+#load specific packages within r for data manipulation and analysis
+list.of.packages <- c("lme4","lmerTest","tidyverse","emmeans","piecewiseSEM","LMERConvenienceFunctions")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+
+#FOR goby DATASET
+grpsz = read.csv("GobyReefSysComp_grpSz_v7c_FusOcuQuiRiv_noMixedSpp_fixedmissingdata.csv")
+str(grpsz)
+#rename variables
+grpsz = rename(grpsz,!!c(spp = "SppForAnalysis", coralsz = "Avg.Diam", dominantsz = "SizeOfDominant.SLmm"))
+#make as a factor
+grpsz$spp = factor(grpsz$spp)
+grpsz$dominantsz = as.numeric(grpsz$dominantsz)
+grpsz$Reef = factor(grpsz$Reef)
+str(grpsz)
+
+
+#only G. rivulatus data
+grpsz.riv=subset(grpsz,grpsz$spp == "rivulatus")
+str(grpsz.riv)
+
+#get qq plot for specific variable
+qqnorm(grpsz.riv$PopN,main="Normal Q-Q Plot grpsz.riv$PopN")
+# add line through qq plot 
+qqline(grpsz.riv$PopN)
+#make histogram
+hist(grpsz.riv$PopN)
+#square root (sqrt( transform data
+grpsz.riv$sqrtPopN = sqrt(grpsz.riv$PopN)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqrtPopN, main="Normal Q-Q Plot grpsz.riv$sqrtPopN")
+# add line through qq plot 
+qqline(grpsz.riv$sqrtPopN)
+#make histogram
+hist(grpsz.riv$sqrtPopN)
+#cube root (curt) transform data
+grpsz.riv$curtPopN = (grpsz.riv$PopN)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$curtPopN, main="Normal Q-Q Plot grpsz.riv$curtPopN")
+# add line through qq plot 
+qqline(grpsz.riv$curtPopN)
+#make histogram
+hist(grpsz.riv$curtPopN)
+#log + 1 (log1)transform data
+grpsz.riv$log1PopN = log(grpsz.riv$PopN+1)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$log1PopN, main="Normal Q-Q Plot grpsz.riv$log1PopN")
+# add line through qq plot 
+qqline(grpsz.riv$log1PopN)
+#make histogram
+hist(grpsz.riv$log1PopN)
+#log (log)transform data
+grpsz.riv$logPopN = log(grpsz.riv$PopN)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$logPopN, main="Normal Q-Q Plot grpsz.riv$logPopN")
+# add line through qq plot 
+qqline(grpsz.riv$logPopN)
+#make histogram
+hist(grpsz.riv$logPopN)
+#square root (sq( transform data
+grpsz.riv$sqPopN = (grpsz.riv$PopN)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqPopN, main="Normal Q-Q Plot grpsz.riv$sqPopN")
+# add line through qq plot 
+qqline(grpsz.riv$sqPopN)
+#make histogram
+hist(grpsz.riv$sqPopN)
+#cube root (cu) transform data
+grpsz.riv$cuPopN = (grpsz.riv$PopN)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$cuPopN, main="Normal Q-Q Plot grpsz.riv$cuPopN")
+# add line through qq plot 
+qqline(grpsz.riv$cuPopN)
+#make histogram
+hist(grpsz.riv$cuPopN)
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz + Reef, family = "poisson", data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz + Reef, family = "poisson", data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(PopN~coralsz*dominantsz,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz, family = "poisson", data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz, family = "poisson", data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(PopN~coralsz*dominantsz,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+#only G. fuscoruber data
+grpsz.fus=subset(grpsz,grpsz$spp == "fuscoruber")
+str(grpsz.fus)
+
+#get qq plot for specific variable
+qqnorm(grpsz.fus$PopN,main="Normal Q-Q Plot grpsz.fus$PopN")
+# add line through qq plot 
+qqline(grpsz.fus$PopN)
+#make histogram
+hist(grpsz.fus$PopN)
+#square root (sqrt( transform data
+grpsz.fus$sqrtPopN = sqrt(grpsz.fus$PopN)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqrtPopN, main="Normal Q-Q Plot grpsz.fus$sqrtPopN")
+# add line through qq plot 
+qqline(grpsz.fus$sqrtPopN)
+#make histogram
+hist(grpsz.fus$sqrtPopN)
+#cube root (curt) transform data
+grpsz.fus$curtPopN = (grpsz.fus$PopN)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$curtPopN, main="Normal Q-Q Plot grpsz.fus$curtPopN")
+# add line through qq plot 
+qqline(grpsz.fus$curtPopN)
+#make histogram
+hist(grpsz.fus$curtPopN)
+#log + 1 (log1)transform data
+grpsz.fus$log1PopN = log(grpsz.fus$PopN+1)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$log1PopN, main="Normal Q-Q Plot grpsz.fus$log1PopN")
+# add line through qq plot 
+qqline(grpsz.fus$log1PopN)
+#make histogram
+hist(grpsz.fus$log1PopN)
+#log (log)transform data
+grpsz.fus$logPopN = log(grpsz.fus$PopN)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$logPopN, main="Normal Q-Q Plot grpsz.fus$logPopN")
+# add line through qq plot 
+qqline(grpsz.fus$logPopN)
+#make histogram
+hist(grpsz.fus$logPopN)
+#square root (sq( transform data
+grpsz.fus$sqPopN = (grpsz.fus$PopN)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqPopN, main="Normal Q-Q Plot grpsz.fus$sqPopN")
+# add line through qq plot 
+qqline(grpsz.fus$sqPopN)
+#make histogram
+hist(grpsz.fus$sqPopN)
+#cube root (cu) transform data
+grpsz.fus$cuPopN = (grpsz.fus$PopN)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$cuPopN, main="Normal Q-Q Plot grpsz.fus$cuPopN")
+# add line through qq plot 
+qqline(grpsz.fus$cuPopN)
+#make histogram
+hist(grpsz.fus$cuPopN)
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz + Reef, family = "poisson", data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz + Reef, family = "poisson", data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(PopN~coralsz*dominantsz,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz, family = "poisson", data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = glm(PopN ~ coralsz + dominantsz + dominantsz:coralsz, family = "poisson", data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.PopN.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(PopN~coralsz*dominantsz,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+##NOW DOING DOMINANT SZ AS RESPONSE VARIABLE
+
+
+#get qq plot for specific variable
+qqnorm(grpsz.riv$dominantsz,main="Normal Q-Q Plot grpsz.riv$dominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$dominantsz)
+#make histogram
+hist(grpsz.riv$dominantsz)
+#square root (sqrt( transform data
+grpsz.riv$sqrtdominantsz = sqrt(grpsz.riv$dominantsz)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqrtdominantsz, main="Normal Q-Q Plot grpsz.riv$sqrtdominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$sqrtdominantsz)
+#make histogram
+hist(grpsz.riv$sqrtdominantsz)
+#cube root (curt) transform data
+grpsz.riv$curtdominantsz = (grpsz.riv$dominantsz)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$curtdominantsz, main="Normal Q-Q Plot grpsz.riv$curtdominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$curtdominantsz)
+#make histogram
+hist(grpsz.riv$curtdominantsz)
+#log + 1 (log1)transform data
+grpsz.riv$log1dominantsz = log(grpsz.riv$dominantsz+1)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$log1dominantsz, main="Normal Q-Q Plot grpsz.riv$log1dominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$log1dominantsz)
+#make histogram
+hist(grpsz.riv$log1dominantsz)
+#log (log)transform data
+grpsz.riv$logdominantsz = log(grpsz.riv$dominantsz)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$logdominantsz, main="Normal Q-Q Plot grpsz.riv$logdominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$logdominantsz)
+#make histogram
+hist(grpsz.riv$logdominantsz)
+#square root (sq( transform data
+grpsz.riv$sqdominantsz = (grpsz.riv$dominantsz)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqdominantsz, main="Normal Q-Q Plot grpsz.riv$sqdominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$sqdominantsz)
+#make histogram
+hist(grpsz.riv$sqdominantsz)
+#cube root (cu) transform data
+grpsz.riv$cudominantsz = (grpsz.riv$dominantsz)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$cudominantsz, main="Normal Q-Q Plot grpsz.riv$cudominantsz")
+# add line through qq plot 
+qqline(grpsz.riv$cudominantsz)
+#make histogram
+hist(grpsz.riv$cudominantsz)
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = lm(logdominantsz ~ coralsz + PopN + PopN:coralsz + Reef, data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = lm(logdominantsz ~ coralsz + PopN + PopN:coralsz + Reef, data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(dominantsz~coralsz*PopN,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+#pairwise comparisons
+emm.grpsz.riv.trim <- emmeans(ft.glm.grpsz.riv.trim, spec= "Reef") #calculate pop means
+summary(emm.grpsz.riv.trim)
+emm.grpsz.riv.trim_tuk = contrast(emm.grpsz.riv.trim,method = "pairwise") #posthoc testing
+summary(emm.grpsz.riv.trim_tuk) # display corrected p-values
+confint(emm.grpsz.riv.trim_tuk) #dispaly 95% conf. interval
+plot(emm.grpsz.riv.trim_tuk, xlab = "Difference in domsz x reef") # display 95% confidenc einterval
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = lm(logdominantsz ~ coralsz + PopN + PopN:coralsz, data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = lm(logdominantsz ~ coralsz + PopN + PopN:coralsz, data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(dominantsz~coralsz*PopN,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+
+
+#get qq plot for specific variable
+qqnorm(grpsz.fus$dominantsz,main="Normal Q-Q Plot grpsz.fus$dominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$dominantsz)
+#make histogram
+hist(grpsz.fus$dominantsz)
+#square root (sqrt( transform data
+grpsz.fus$sqrtdominantsz = sqrt(grpsz.fus$dominantsz)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqrtdominantsz, main="Normal Q-Q Plot grpsz.fus$sqrtdominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$sqrtdominantsz)
+#make histogram
+hist(grpsz.fus$sqrtdominantsz)
+#cube root (curt) transform data
+grpsz.fus$curtdominantsz = (grpsz.fus$dominantsz)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$curtdominantsz, main="Normal Q-Q Plot grpsz.fus$curtdominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$curtdominantsz)
+#make histogram
+hist(grpsz.fus$curtdominantsz)
+#log + 1 (log1)transform data
+grpsz.fus$log1dominantsz = log(grpsz.fus$dominantsz+1)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$log1dominantsz, main="Normal Q-Q Plot grpsz.fus$log1dominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$log1dominantsz)
+#make histogram
+hist(grpsz.fus$log1dominantsz)
+#log (log)transform data
+grpsz.fus$logdominantsz = log(grpsz.fus$dominantsz)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$logdominantsz, main="Normal Q-Q Plot grpsz.fus$logdominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$logdominantsz)
+#make histogram
+hist(grpsz.fus$logdominantsz)
+#square root (sq( transform data
+grpsz.fus$sqdominantsz = (grpsz.fus$dominantsz)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqdominantsz, main="Normal Q-Q Plot grpsz.fus$sqdominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$sqdominantsz)
+#make histogram
+hist(grpsz.fus$sqdominantsz)
+#cube root (cu) transform data
+grpsz.fus$cudominantsz = (grpsz.fus$dominantsz)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$cudominantsz, main="Normal Q-Q Plot grpsz.fus$cudominantsz")
+# add line through qq plot 
+qqline(grpsz.fus$cudominantsz)
+#make histogram
+hist(grpsz.fus$cudominantsz)
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = lm(curtdominantsz ~ coralsz + PopN + PopN:coralsz + Reef, data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = lm(curtdominantsz ~ coralsz + PopN + PopN:coralsz + Reef, data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(dominantsz~coralsz*PopN,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+#pairwise comparisons
+emm.grpsz.fus.trim <- emmeans(ft.glm.grpsz.fus.trim, spec= "Reef") #calculate pop means
+summary(emm.grpsz.fus.trim)
+emm.grpsz.fus.trim_tuk = contrast(emm.grpsz.fus.trim,method = "pairwise") #posthoc testing
+summary(emm.grpsz.fus.trim_tuk) # display corrected p-values
+confint(emm.grpsz.fus.trim_tuk) #dispaly 95% conf. interval
+plot(emm.grpsz.fus.trim_tuk, xlab = "Difference in domsz x reef") # display 95% confidenc einterval
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = lm(curtdominantsz ~ coralsz + PopN + PopN:coralsz, data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = lm(curtdominantsz ~ coralsz + PopN + PopN:coralsz, data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.dominantsz.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(dominantsz~coralsz*PopN,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+##NOW DOING CORAL SZ AS RESPONSE VARIABLE
+
+
+#get qq plot for specific variable
+qqnorm(grpsz.riv$coralsz,main="Normal Q-Q Plot grpsz.riv$coralsz")
+# add line through qq plot 
+qqline(grpsz.riv$coralsz)
+#make histogram
+hist(grpsz.riv$coralsz)
+#square root (sqrt( transform data
+grpsz.riv$sqrtcoralsz = sqrt(grpsz.riv$coralsz)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqrtcoralsz, main="Normal Q-Q Plot grpsz.riv$sqrtcoralsz")
+# add line through qq plot 
+qqline(grpsz.riv$sqrtcoralsz)
+#make histogram
+hist(grpsz.riv$sqrtcoralsz)
+#cube root (curt) transform data
+grpsz.riv$curtcoralsz = (grpsz.riv$coralsz)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$curtcoralsz, main="Normal Q-Q Plot grpsz.riv$curtcoralsz")
+# add line through qq plot 
+qqline(grpsz.riv$curtcoralsz)
+#make histogram
+hist(grpsz.riv$curtcoralsz)
+#log + 1 (log1)transform data
+grpsz.riv$log1coralsz = log(grpsz.riv$coralsz+1)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$log1coralsz, main="Normal Q-Q Plot grpsz.riv$log1coralsz")
+# add line through qq plot 
+qqline(grpsz.riv$log1coralsz)
+#make histogram
+hist(grpsz.riv$log1coralsz)
+#log (log)transform data
+grpsz.riv$logcoralsz = log(grpsz.riv$coralsz)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$logcoralsz, main="Normal Q-Q Plot grpsz.riv$logcoralsz")
+# add line through qq plot 
+qqline(grpsz.riv$logcoralsz)
+#make histogram
+hist(grpsz.riv$logcoralsz)
+#square root (sq( transform data
+grpsz.riv$sqcoralsz = (grpsz.riv$coralsz)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$sqcoralsz, main="Normal Q-Q Plot grpsz.riv$sqcoralsz")
+# add line through qq plot 
+qqline(grpsz.riv$sqcoralsz)
+#make histogram
+hist(grpsz.riv$sqcoralsz)
+#cube root (cu) transform data
+grpsz.riv$cucoralsz = (grpsz.riv$coralsz)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.riv$cucoralsz, main="Normal Q-Q Plot grpsz.riv$cucoralsz")
+# add line through qq plot 
+qqline(grpsz.riv$cucoralsz)
+#make histogram
+hist(grpsz.riv$cucoralsz)
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz + Reef, data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz + Reef, data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(coralsz~dominantsz*PopN,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+#pairwise comparisons
+emm.grpsz.riv.trim <- emmeans(ft.glm.grpsz.riv.trim, spec= "Reef") #calculate pop means
+summary(emm.grpsz.riv.trim)
+emm.grpsz.riv.trim_tuk = contrast(emm.grpsz.riv.trim,method = "pairwise") #posthoc testing
+summary(emm.grpsz.riv.trim_tuk) # display corrected p-values
+confint(emm.grpsz.riv.trim_tuk) #dispaly 95% conf. interval
+plot(emm.grpsz.riv.trim_tuk, xlab = "Difference in domsz x reef") # display 95% confidenc einterval
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz, data = grpsz.riv)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv, test = "Chisq")
+summary(ft.glm.grpsz.riv)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv)
+rsquared(ft.glm.grpsz.riv) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.riv.trim = romr.fnc(ft.glm.grpsz.riv, grpsz.riv, trim = 2.5)
+grpsz.glm.riv.trim = grpsz.glm.riv.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.riv.trim = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz, data = grpsz.glm.riv.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.riv.trim, test = "Chisq")
+summary(ft.glm.grpsz.riv.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.riv.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.riv.trim, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(coralsz~dominantsz*PopN,data = grpsz.glm.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+rsquared(ft.glm.grpsz.riv.trim)
+
+
+
+#get qq plot for specific variable
+qqnorm(grpsz.fus$coralsz,main="Normal Q-Q Plot grpsz.fus$coralsz")
+# add line through qq plot 
+qqline(grpsz.fus$coralsz)
+#make histogram
+hist(grpsz.fus$coralsz)
+#square root (sqrt( transform data
+grpsz.fus$sqrtcoralsz = sqrt(grpsz.fus$coralsz)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqrtcoralsz, main="Normal Q-Q Plot grpsz.fus$sqrtcoralsz")
+# add line through qq plot 
+qqline(grpsz.fus$sqrtcoralsz)
+#make histogram
+hist(grpsz.fus$sqrtcoralsz)
+#cube root (curt) transform data
+grpsz.fus$curtcoralsz = (grpsz.fus$coralsz)^(1/4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$curtcoralsz, main="Normal Q-Q Plot grpsz.fus$curtcoralsz")
+# add line through qq plot 
+qqline(grpsz.fus$curtcoralsz)
+#make histogram
+hist(grpsz.fus$curtcoralsz)
+#log + 1 (log1)transform data
+grpsz.fus$log1coralsz = log(grpsz.fus$coralsz+1)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$log1coralsz, main="Normal Q-Q Plot grpsz.fus$log1coralsz")
+# add line through qq plot 
+qqline(grpsz.fus$log1coralsz)
+#make histogram
+hist(grpsz.fus$log1coralsz)
+#log (log)transform data
+grpsz.fus$logcoralsz = log(grpsz.fus$coralsz)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$logcoralsz, main="Normal Q-Q Plot grpsz.fus$logcoralsz")
+# add line through qq plot 
+qqline(grpsz.fus$logcoralsz)
+#make histogram
+hist(grpsz.fus$logcoralsz)
+#square root (sq( transform data
+grpsz.fus$sqcoralsz = (grpsz.fus$coralsz)^(2)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$sqcoralsz, main="Normal Q-Q Plot grpsz.fus$sqcoralsz")
+# add line through qq plot 
+qqline(grpsz.fus$sqcoralsz)
+#make histogram
+hist(grpsz.fus$sqcoralsz)
+#cube root (cu) transform data
+grpsz.fus$cucoralsz = (grpsz.fus$coralsz)^(4)
+#get qq plot for specific variable
+qqnorm(grpsz.fus$cucoralsz, main="Normal Q-Q Plot grpsz.fus$cucoralsz")
+# add line through qq plot 
+qqline(grpsz.fus$cucoralsz)
+#make histogram
+hist(grpsz.fus$cucoralsz)
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz + Reef, data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz + Reef, data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(coralsz~dominantsz*PopN,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+#pairwise comparisons
+emm.grpsz.fus.trim <- emmeans(ft.glm.grpsz.fus.trim, spec= "Reef") #calculate pop means
+summary(emm.grpsz.fus.trim)
+emm.grpsz.fus.trim_tuk = contrast(emm.grpsz.fus.trim,method = "pairwise") #posthoc testing
+summary(emm.grpsz.fus.trim_tuk) # display corrected p-values
+confint(emm.grpsz.fus.trim_tuk) #dispaly 95% conf. interval
+plot(emm.grpsz.fus.trim_tuk, xlab = "Difference in domsz x reef") # display 95% confidenc einterval
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz, data = grpsz.fus)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus, test = "Chisq")
+summary(ft.glm.grpsz.fus)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus)
+rsquared(ft.glm.grpsz.fus) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+#check for outliers and remove them. 
+grpsz.glm.fus.trim = romr.fnc(ft.glm.grpsz.fus, grpsz.fus, trim = 2.5)
+grpsz.glm.fus.trim = grpsz.glm.fus.trim$data
+
+##GLM = generalized-linear model with site nested within currentzone
+ft.glm.grpsz.fus.trim = lm(logcoralsz ~ dominantsz + PopN + PopN:dominantsz, data = grpsz.glm.fus.trim)
+##get anova table with p values if lmerTest package installed
+anova(ft.glm.grpsz.fus.trim, test = "Chisq")
+summary(ft.glm.grpsz.fus.trim)
+#AIC() check for model fitting
+AIC(ft.glm.grpsz.fus.trim)
+##get plot of residuals over fitted for homoescedasticity
+plot(ft.glm.grpsz.fus.trim, main = "residuals/fitted ft.coralsz.trim")
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim) #marginal is associated with fixed effects and conditional is associated with fixed plus random effects.
+
+plot(coralsz~dominantsz*PopN,data = grpsz.glm.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+rsquared(ft.glm.grpsz.fus.trim)
+
+#SIZE RATIOS ANALYSIS
+
+
+#load specific packages within r for data manipulation and analysis
+list.of.packages <- c("lme4","car","tidyverse","ggpubr","LMERConvenienceFunctions","emmeans","piecewiseSEM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratio_LIPNGOTI_v2_EryFusHisOcuQuiRiv_fixedOcuMisLabel_nomixed.csv")
+ratio.all = rename(ratio.all,!!c(coralsz = "Coral.Avg.Diameter..cm.", spp = "Spp.for.ethics",jv="juvenileInRankstep",mix="MixedSppGrp"))
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$Reef = factor(ratio.all$Reef)
+ratio.all$Coral.ID = factor(ratio.all$Coral.ID)
+ratio.all$spp = factor(ratio.all$spp)
+str(ratio.all)
+
+#ALL SPECIES COMBINED BUT ONLY FOR RANKSTEP1
+ratio.all.rank1=subset(ratio.all,ratio.all$rankstepNum != 2 & ratio.all$rankstepNum != 3 & ratio.all$rankstepNum != 4 & ratio.all$rankstepNum != 5 & ratio.all$rankstepNum != 6 & ratio.all$rankstepNum != 7)
+str(ratio.all.rank1)
+
+#check for correlation between specific variables first with scatterplot, then with pearsons test
+ggscatter(ratio.all.rank1, x = "coralsz", y = "popn", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson", xlab = "Average Coral Diameter (cm)", ylab = "Goby Group Size (adults only)")
+#pearson's test for correlation (if p<0.05 then correlated)
+res <- cor.test(ratio.all.rank1$coralsz, ratio.all.rank1$popn, 
+                method = "pearson")
+res
+
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sizeratio,main="Normal Q-Q Plot ratio.all.rank1$sizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sizeratio)
+#make histogram
+hist(ratio.all.rank1$sizeratio)
+#square root (sqrt( transform data
+ratio.all.rank1$sqrtsizeratio = sqrt(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqrtsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqrtsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all.rank1$fortsizeratio = (ratio.all.rank1$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fortsizeratio, main="Normal Q-Q Plot ratio.all.rank1$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fortsizeratio)
+#make histogram
+hist(ratio.all.rank1$fortsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#square root (sq( transform data
+ratio.all.rank1$sqsizeratio = (ratio.all.rank1$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all.rank1$fosizeratio = (ratio.all.rank1$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fosizeratio, main="Normal Q-Q Plot ratio.all.rank1$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fosizeratio)
+#make histogram
+hist(ratio.all.rank1$fosizeratio)
+#boxcox transform data
+ratio.all.rank1$bcoxsizeratio = boxCoxVariable(ratio.all.rank1$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all.rank1$bcoxsizeratio, main="Normal Q-Q Plot ratio.all.rank1$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$bcoxsizeratio)
+#make histogram
+hist(ratio.all.rank1$bcoxsizeratio)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + popn + Reef * spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + Reef * spp, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + popn + spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + spp, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+
+rsquared(ft.glm.ratio.all.rank1)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + popn + Reef * spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + Reef * spp, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#NOT ENOUGH SAMPLES FOR RANK2 SIZE RATIOS THOUGH
+#ALL SPECIES COMBINED BUT ONLY FOR RANKSTEP1
+ratio.all.rank2=subset(ratio.all,ratio.all$rankstepNum != 1 & ratio.all$rankstepNum != 3 & ratio.all$rankstepNum != 4 & ratio.all$rankstepNum != 5 & ratio.all$rankstepNum != 6 & ratio.all$rankstepNum != 7)
+ratio.all.rank2=subset(ratio.all.rank2,spp !="histrio" & spp !="oculolineatus")
+str(ratio.all.rank2)
+
+#check for correlation between specific variables first with scatterplot, then with pearsons test
+ggscatter(ratio.all.rank2, x = "coralsz", y = "popn", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson")
+#pearson's test for correlation (if p<0.05 then correlated)
+res <- cor.test(ratio.all.rank2$coralsz, ratio.all.rank2$popn, 
+                method = "pearson")
+res
+
+
+plot(ratio.all.rank2$coralsz,ratio.all.rank2$sizeratio)
+abline(lm(ratio.all.rank2$sizeratio~ratio.all.rank2$coralsz), col='red', main='Check the axis labels')
+
+plot(ratio.all.rank2$Group.size,ratio.all.rank2$sizeratio)
+abline(lm(ratio.all.rank2$sizeratio~ratio.all.rank2$Group.size), col='red', main='Check the axis labels')
+
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$sizeratio,main="Normal Q-Q Plot ratio.all.rank2$sizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$sizeratio)
+#make histogram
+hist(ratio.all.rank2$sizeratio)
+#square root (sqrt( transform data
+ratio.all.rank2$sqrtsizeratio = sqrt(ratio.all.rank2$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$sqrtsizeratio, main="Normal Q-Q Plot ratio.all.rank2$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$sqrtsizeratio)
+#make histogram
+hist(ratio.all.rank2$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all.rank2$fortsizeratio = (ratio.all.rank2$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$fortsizeratio, main="Normal Q-Q Plot ratio.all.rank2$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$fortsizeratio)
+#make histogram
+hist(ratio.all.rank2$fortsizeratio)
+#log (log)transform data
+ratio.all.rank2$logsizeratio = log(ratio.all.rank2$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$logsizeratio, main="Normal Q-Q Plot ratio.all.rank2$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$logsizeratio)
+#make histogram
+hist(ratio.all.rank2$logsizeratio)
+#log (log)transform data
+ratio.all.rank2$logsizeratio = log(ratio.all.rank2$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$logsizeratio, main="Normal Q-Q Plot ratio.all.rank2$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$logsizeratio)
+#make histogram
+hist(ratio.all.rank2$logsizeratio)
+#square root (sq( transform data
+ratio.all.rank2$sqsizeratio = (ratio.all.rank2$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$sqsizeratio, main="Normal Q-Q Plot ratio.all.rank2$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$sqsizeratio)
+#make histogram
+hist(ratio.all.rank2$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all.rank2$fosizeratio = (ratio.all.rank2$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank2$fosizeratio, main="Normal Q-Q Plot ratio.all.rank2$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$fosizeratio)
+#make histogram
+hist(ratio.all.rank2$fosizeratio)
+#boxcox transform data
+ratio.all.rank2$bcoxsizeratio = boxCoxVariable(ratio.all.rank2$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all.rank2$bcoxsizeratio, main="Normal Q-Q Plot ratio.all.rank2$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank2$bcoxsizeratio)
+#make histogram
+hist(ratio.all.rank2$bcoxsizeratio)
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank2 = glm(sizeratio ~ coralsz + popn + spp, data = ratio.all.rank2, family = quasibinomial)
+anova(ft.glm.ratio.all.rank2,test = "Chisq")
+summary(ft.glm.ratio.all.rank2)
+plot(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+
+#check for outliers and remove them. 
+ratio.all.rank2.trim = romr.fnc(ft.glm.ratio.all.rank2, ratio.all.rank2, trim = 2.5)
+ratio.all.rank2.trim =ratio.all.rank2.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank2.trim = glm(sizeratio ~ coralsz + popn + spp, data = ratio.all.rank2.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank2.trim,test = "Chisq")
+summary(ft.glm.ratio.all.rank2.trim)
+plot(ft.glm.ratio.all.rank2.trim)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+rsquared(ft.glm.ratio.all.rank2)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank2.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank2.trim, cex.axis = 1.4)
+
+#get means and standard error of function
+
+ratio.all.rank2.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#subset just for two ranksteps for plotting together
+ratio.all.rank1and2=rbind(ratio.all.rank1,ratio.all.rank2)
+
+#boxplot for both ranks
+boxplot(sizeratio ~ spp*rankstepNum,ratio.all.rank1and2, cex.axis=1.4)
+
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1and2,aes(x=spp, y=sizeratio, color = rankstep)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  theme(axis.text.x = element_text(face = "italic"))+
+  scale_x_discrete(labels=c("erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')
+
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1and2,aes(x=spp, y=sizeratio, color = rankstep)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  ylab('Size Ratios')
+
+
+#NOW ADD G. BROCHUS
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratio_LIPNGOTI_v1_EryFusHisOcuQuiRivBro_noReefComp_OcuMisLabelFixed_nomixed.csv")
+ratio.all = rename(ratio.all,!!c(coralsz = "Coral.Avg.Diameter..cm.", spp = "Spp.for.ethics",GS="GSwinSpp",jv="juvenileInRankstep",mix="MixedSppGrp"))
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$Reef = factor(ratio.all$Reef)
+ratio.all$Coral.ID = factor(ratio.all$Coral.ID)
+ratio.all$spp = factor(ratio.all$spp)
+str(ratio.all)
+
+#ALL SPECIES COMBINED BUT ONLY FOR RANKSTEP1
+ratio.all.rank1=subset(ratio.all,ratio.all$rankstepNum != 2 & ratio.all$rankstepNum != 3 & ratio.all$rankstepNum != 4 & ratio.all$rankstepNum != 5 & ratio.all$rankstepNum != 6 & ratio.all$rankstepNum != 7)
+str(ratio.all.rank1)
+
+#check for correlation between specific variables first with scatterplot, then with pearsons test
+ggscatter(ratio.all.rank1, x = "coralsz", y = "popn", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson")
+#pearson's test for correlation (if p<0.05 then correlated)
+res <- cor.test(ratio.all.rank1$coralsz, ratio.all.rank1$popn, 
+                method = "pearson")
+res
+
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sizeratio,main="Normal Q-Q Plot ratio.all.rank1$sizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sizeratio)
+#make histogram
+hist(ratio.all.rank1$sizeratio)
+#square root (sqrt( transform data
+ratio.all.rank1$sqrtsizeratio = sqrt(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqrtsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqrtsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all.rank1$fortsizeratio = (ratio.all.rank1$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fortsizeratio, main="Normal Q-Q Plot ratio.all.rank1$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fortsizeratio)
+#make histogram
+hist(ratio.all.rank1$fortsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#square root (sq( transform data
+ratio.all.rank1$sqsizeratio = (ratio.all.rank1$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all.rank1$fosizeratio = (ratio.all.rank1$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fosizeratio, main="Normal Q-Q Plot ratio.all.rank1$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fosizeratio)
+#make histogram
+hist(ratio.all.rank1$fosizeratio)
+#boxcox transform data
+ratio.all.rank1$bcoxsizeratio = boxCoxVariable(ratio.all.rank1$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all.rank1$bcoxsizeratio, main="Normal Q-Q Plot ratio.all.rank1$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$bcoxsizeratio)
+#make histogram
+hist(ratio.all.rank1$bcoxsizeratio)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz + popn + spp, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + spp, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#subset just for two ranksteps for plotting together
+ratio.all.rank1and2=rbind(ratio.all.rank1,ratio.all.rank2)
+
+#boxplot for both ranks
+boxplot(sizeratio ~ spp*rankstepNum,ratio.all.rank1and2, cex.axis=1.4)
+
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1and2,aes(x=spp, y=sizeratio, color = rankstep)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  theme(axis.text.x = element_text(face = "italic", angle = 10))+
+  scale_x_discrete(labels=c("brochus" = "G. brochus", "erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')
+
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1and2,aes(x=spp, y=sizeratio, color = rankstep)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  ylab('Size Ratios')
+
+
+#SIZE RATIO BEFORE AND AFTER REVISIT
+
+
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratioByRevisit_v1.csv")
+ratio.all = rename(ratio.all,!!c(popn="Group.size.with.juveniles",coralsz = "Coral.Avg.Diameter..cm.",GS="GS...no.juveniles", spp = "Spp.for.ethics",visit="visit.",Coral.ID="CoralTag.metal"))
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$reef = factor(ratio.all$reef)
+ratio.all$Coral.ID = factor(ratio.all$Coral.ID)
+ratio.all$spp = factor(ratio.all$spp)
+ratio.all$visit = factor(ratio.all$visit)
+str(ratio.all)
+
+#ALL SPECIES COMBINED BUT ONLY FOR RANKSTEP1
+ratio.all.rank1=subset(ratio.all,ratio.all$rankstepNum != 2 & ratio.all$rankstepNum != 3 & ratio.all$rankstepNum != 4 & ratio.all$rankstepNum != 5 & ratio.all$rankstepNum != 6 & ratio.all$rankstepNum != 7)
+str(ratio.all.rank1)
+
+#check for correlation between specific variables first with scatterplot, then with pearsons test
+ggscatter(ratio.all.rank1, x = "coralsz", y = "GS", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson", xlab = "Average Coral Diameter (cm)", ylab = "Goby Group Size (adults only)")
+#pearson's test for correlation (if p<0.05 then correlated)
+res <- cor.test(ratio.all.rank1$coralsz, ratio.all.rank1$GS, 
+                method = "pearson")
+res
+
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sizeratio,main="Normal Q-Q Plot ratio.all.rank1$sizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sizeratio)
+#make histogram
+hist(ratio.all.rank1$sizeratio)
+#square root (sqrt( transform data
+ratio.all.rank1$sqrtsizeratio = sqrt(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqrtsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqrtsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all.rank1$fortsizeratio = (ratio.all.rank1$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fortsizeratio, main="Normal Q-Q Plot ratio.all.rank1$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fortsizeratio)
+#make histogram
+hist(ratio.all.rank1$fortsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#square root (sq( transform data
+ratio.all.rank1$sqsizeratio = (ratio.all.rank1$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all.rank1$fosizeratio = (ratio.all.rank1$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fosizeratio, main="Normal Q-Q Plot ratio.all.rank1$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fosizeratio)
+#make histogram
+hist(ratio.all.rank1$fosizeratio)
+#boxcox transform data
+ratio.all.rank1$bcoxsizeratio = boxCoxVariable(ratio.all.rank1$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all.rank1$bcoxsizeratio, main="Normal Q-Q Plot ratio.all.rank1$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$bcoxsizeratio)
+#make histogram
+hist(ratio.all.rank1$bcoxsizeratio)
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz +popn+ spp+reef+visit+spp:reef+spp:visit+reef:visit, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn+spp+reef+visit+spp:reef+spp:visit+reef:visit, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+boxplot(sizeratio ~ visit, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(visit) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz +popn+ spp*visit, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + spp*visit, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+boxplot(sizeratio ~ visit, data = ratio.all.rank1,ylab="Size Ratio of Rankstep 1",xlab="Visit",cex.lab=1.5,cex.axis=1.5)
+
+ratio.all.rank1.PNG = subset(ratio.all.rank1,ratio.all.rank1$reef == "PNG")
+boxplot(sizeratio ~ visit, data = ratio.all.rank1.PNG,ylab="Size Ratio of Rankstep 1",xlab="Visit",cex.lab=1.5,cex.axis=1.5)
+
+ratio.all.rank1.LI = subset(ratio.all.rank1,ratio.all.rank1$reef == "LI")
+boxplot(sizeratio ~ visit, data = ratio.all.rank1.LI,ylab="Size Ratio of Rankstep 1",xlab="Visit",cex.lab=1.5,cex.axis=1.5)
+
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1.PNG,aes(x=visit, y=sizeratio, color = sizeratio)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  ylim(0.5,1)+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  scale_x_discrete(labels=c("brochus" = "G. brochus", "erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')
+
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(visit) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+#PrePost analysis of size ratios at Lizard Island
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratioByRevisit_v2_prepostLI_nomixed.csv")
+ratio.all = rename(ratio.all,!!c(popn="Group.size.with.juveniles",coralsz = "Coral.Avg.Diameter..cm.",GS="GS...no.juveniles", spp = "Spp.for.ethics",visit="visit.",Coral.ID="CoralTag.metal"))
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$reef = factor(ratio.all$reef)
+ratio.all$Coral.ID = factor(ratio.all$Coral.ID)
+ratio.all$spp = factor(ratio.all$spp)
+ratio.all$visit = factor(ratio.all$visit)
+ratio.all$prepost = factor(ratio.all$prepost)
+ratio.all$prepostvisit = factor(ratio.all$prepostvisit)
+str(ratio.all)
+
+#ALL SPECIES COMBINED BUT ONLY FOR RANKSTEP1
+ratio.all.rank1=subset(ratio.all,ratio.all$rankstepNum != 2 & ratio.all$rankstepNum != 3 & ratio.all$rankstepNum != 4 & ratio.all$rankstepNum != 5 & ratio.all$rankstepNum != 6 & ratio.all$rankstepNum != 7)
+str(ratio.all.rank1)
+ratio.all.rank1=subset(ratio.all.rank1,ratio.all.rank1$prepost == "Pre"|ratio.all.rank1$prepost == "Post")
+str(ratio.all.rank1)
+ratio.all.rank1=subset(ratio.all.rank1,ratio.all.rank1$spp=="brochus"|ratio.all.rank1$spp == "erythrospilus"|ratio.all.rank1$spp=="histrio"|ratio.all.rank1$spp=="quinquestrigatus")
+str(ratio.all.rank1)
+
+#check for correlation between specific variables first with scatterplot, then with pearsons test
+ggscatter(ratio.all.rank1, x = "coralsz", y = "GS", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson", xlab = "Average Coral Diameter (cm)", ylab = "Goby Group Size (adults only)")
+#pearson's test for correlation (if p<0.05 then correlated)
+res <- cor.test(ratio.all.rank1$coralsz, ratio.all.rank1$GS, 
+                method = "pearson")
+res
+
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sizeratio,main="Normal Q-Q Plot ratio.all.rank1$sizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sizeratio)
+#make histogram
+hist(ratio.all.rank1$sizeratio)
+#square root (sqrt( transform data
+ratio.all.rank1$sqrtsizeratio = sqrt(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqrtsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqrtsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all.rank1$fortsizeratio = (ratio.all.rank1$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fortsizeratio, main="Normal Q-Q Plot ratio.all.rank1$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fortsizeratio)
+#make histogram
+hist(ratio.all.rank1$fortsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#log (log)transform data
+ratio.all.rank1$logsizeratio = log(ratio.all.rank1$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$logsizeratio, main="Normal Q-Q Plot ratio.all.rank1$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$logsizeratio)
+#make histogram
+hist(ratio.all.rank1$logsizeratio)
+#square root (sq( transform data
+ratio.all.rank1$sqsizeratio = (ratio.all.rank1$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$sqsizeratio, main="Normal Q-Q Plot ratio.all.rank1$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$sqsizeratio)
+#make histogram
+hist(ratio.all.rank1$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all.rank1$fosizeratio = (ratio.all.rank1$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all.rank1$fosizeratio, main="Normal Q-Q Plot ratio.all.rank1$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$fosizeratio)
+#make histogram
+hist(ratio.all.rank1$fosizeratio)
+#boxcox transform data
+ratio.all.rank1$bcoxsizeratio = boxCoxVariable(ratio.all.rank1$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all.rank1$bcoxsizeratio, main="Normal Q-Q Plot ratio.all.rank1$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all.rank1$bcoxsizeratio)
+#make histogram
+hist(ratio.all.rank1$bcoxsizeratio)
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz +popn+ spp +prepostvisit, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~  coralsz +popn+ spp +prepostvisit, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "prepostvisit") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, spec= "spp") #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+confint(emm.spp_tuk) #dispaly 95% conf. interval
+plot(emm.spp_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+boxplot(sizeratio ~ spp, data = ratio.all.rank1.trim, cex.axis = 1.4)
+
+boxplot(sizeratio ~ visit, data = ratio.all.rank1,ylab="Size Ratio of Rankstep 1",xlab="Visit",cex.lab=1.5,cex.axis=1.5)
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(spp) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+#get means and standard error of function
+
+ratio.all.rank1.trim %>% group_by(visit) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all.rank1 = glm(fosizeratio ~ coralsz +popn+ spp*prepostvisit, data = ratio.all.rank1, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1,test = "Chisq") 
+summary(ft.glm.ratio.all.rank1)
+plot(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+rsquared(ft.glm.ratio.all.rank1)
+
+
+#check for outliers and remove them. 
+ratio.all.rank1.trim = romr.fnc(ft.glm.ratio.all.rank1, ratio.all.rank1, trim = 2.5)
+ratio.all.rank1.trim =ratio.all.rank1.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.rank1.trim = glm(fosizeratio ~ coralsz + popn + spp*prepostvisit, data = ratio.all.rank1.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.rank1.trim,test="Chisq")
+summary(ft.glm.ratio.all.rank1.trim)
+plot(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+rsquared(ft.glm.ratio.all.rank1.trim)
+
+#pairwise comparisons
+emm.spp <- emmeans(ft.glm.ratio.all.rank1.trim, pairwise~ prepostvisit|spp) #calculate pop means
+summary(emm.spp)
+emm.spp_tuk = contrast(emm.spp,method = "pairwise") #posthoc testing
+summary(emm.spp_tuk) # display corrected p-values
+
+
+boxplot(sizeratio ~ prepostvisit, data = ratio.all.rank1, cex.axis = 1.4)
+#to check the order of levels: 
+levels(ratio.all.rank1$prepostvisit)
+#change order of levels
+order <- factor(ratio.all.rank1$prepostvisit, level = c('Pre', 'Post1', 'Post2'))
+#plot boxplot with ggplot
+ggplot(ratio.all.rank1,aes(x=order, y=sizeratio, color = sizeratio)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.title.x=element_blank(),axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  scale_x_discrete(labels=c("brochus" = "G. brochus", "erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')
+
+
+#SEX DOMINANCE ANALYSIS: ONLY AT LIZARD ISLAND BECAUSE DID NOT TAKE SEX OF INDIVIDUALS IN OTHER PLACES
+
+#load specific packages within r for data manipulation and analysis
+#VGAM package is used for multinomial logistic regression. check out help: https://rcompanion.org/handbook/H_08.html
+list.of.packages <- c("stats","rcompanion","car")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+#test if sex dominance diverges from unity 1:1 from http://www.simonqueenborough.info/R/statistics/lessons/Testing_Ratios.html
+prop.test(x = 62, n = 153, alternative = 'two.sided')
+
+dom= ("
+spp sex count year
+axi male  8 2020
+axi female  7 2020
+bro male  9 2020
+bro female  14  2020
+bro same  1 2020
+ery male  13  2020
+ery female  10  2020
+ery same  1 2020
+his male  13  2020
+his female  8 2020
+quin  male  11  2020
+quin  female  16  2020
+axi male  2 2021
+axi female  2 2021
+bro male  0 2021
+bro female  6  2021
+ery male  1  2021
+ery female  11  2021
+his male  3  2021
+his female  10 2021
+quin  male  2  2021
+quin  female  5  2021
+")
+
+dom = read.table(textConnection(dom),header=TRUE)
+
+dom$spp = factor(dom$spp,
+                     levels=unique(dom$spp))
+
+dom$year = factor(dom$year,levels=unique(dom$year))
+
+dom$sex = factor(dom$sex,
+                     levels=unique(dom$sex))
+
+
+#only reef as factor
+ft.dom = glm(sex~spp*year,family=binomial(link="logit"),weights=count,data=dom)
+#get stats output
+summary(ft.dom)
+#do anova for logistic regression which is in package: "car"
+Anova(ft.dom,type="II",test="LR")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.dom)
+
+
+#MIXED SPECIES ANALYSES
+
+#load specific packages within r for data manipulation and analysis
+#VGAM package is used for multinomial logistic regression. check out help: https://rcompanion.org/handbook/H_08.html
+list.of.packages <- c("tidyverse","VGAM","car","rcompanion")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+#set the working directory
+setwd("C:/Users/shell/OneDrive - University of Wollongong/U of WOllongong/Manuscript_DataAnalysisUOW/GobyReefSystemComparisons-LIPNGOTI/DataAnalysis")
+
+#get spreadsheet into R as dataframe(needs to be csv file for this function)
+mixed = read.csv("GobyReefSysComp_mixedspphierarchies_v1.csv")
+#spit out structure of the dataframe
+str(mixed)
+
+#rename variables
+mixed = rename(mixed,!!c(rank="mixedranksYorN",biggerspp="biggerspeciesrank1YorN",mixtype="Pairs.Solo.Group.ComboofSoloGrp.PS.PairSoloTogether"))
+#change variable to factor
+mixed$reef = as.factor(mixed$reef)
+mixed$ReefxYear = as.factor(mixed$ReefxYear)
+
+#spit out structure of the dataframe
+str(mixed)           #gives summary stats: min, max, mean, quartiles,... 
+#head() and tail() give you the beginning rows and end rows, respectively, of data frame
+summary(mixed)
+
+##explanation of likelihood ratio test as goodness-of-fit test here: https://cran.r-project.org/web/packages/XNomial/vignettes/XNomial.html
+#for nominal dependent variable with more than 2 levels, needs to do multinomial logistic regression in glm with binomial family
+#glm needed with binomial family for nominal dependent variable (categorical variable for no intrinsic order)
+
+
+#remove any rows that have NA somewhere in one specific column. na.goby means no gobies in transect (for avggGS), na.coral means no corals in transect (for avgcdiam, occp)
+mixed.rank=mixed[!(is.na(mixed$rank)|mixed$rank==""),]
+mixed.biggerspp=mixed[!(is.na(mixed$biggerspp)|mixed$biggerspp==""),]
+mixed.mixtype=mixed[!(is.na(mixed$mixtype)|mixed$mixtype==""),]
+
+#mixed.rank has 38 samples
+#mixed.biggerspp has 37 samples
+#mixed.mixtype has 86 samples
+
+str(mixed.rank)
+str(mixed.biggerspp)
+str(mixed.mixtype)
+
+#SEE WHETHER SIZE HIERARCHY RANK ORDER SPLITS WITH ONE SPECIES BIGGER THAN OTHER OR IF SPECIES INTERMIXED WITHIN RANKS
+
+#check covariates that I think are most important all together
+ft.mixed.rank = vglm(rank~reef,family=multinomial(refLevel="n"),data=mixed.rank)
+#get stats output
+summary(ft.mixed.rank)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.mixed.rank,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.mixed.rank)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.mixed) #not working properly b/c variable not numeric
+
+#to check the order of levels: levels(mixedfigtest$dcsz)
+#create frequency plots of both factors
+ggplot(mixed.rank,aes(x=reef,group=rank,fill=rank))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Species Intermixed With Rank Order")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none") 
+
+
+#to check the order of levels: 
+levels(mixed.rank$reef)
+#change order of levels
+reef_order <- factor(mixed.rank$reef, level = c('PNG', 'LI', 'OTI'))
+#create frequency plots of both factors
+ggplot(mixed.rank,aes(x=reef_order,group=rank,fill=rank))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Species Intermixed With Rank Order")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none")
+
+#NOW SEE IF BIGGER SPECIES BASED ON HING PAPER REMAINS TRUE FOR SPECIES RANK 1 AS BIGGER SPECIES
+
+#check covariates that I think are most important all together
+ft.mixed.biggerspp = vglm(biggerspp~reef,family=multinomial(refLevel="n"),data=mixed.biggerspp)
+#get stats output
+summary(ft.mixed.biggerspp)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.mixed.biggerspp,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.mixed.biggerspp)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.mixed) #not working properly b/c variable not numeric
+
+#to check the order of levels: levels(mixedfigtest$dcsz)
+#create frequency plots of both factors
+ggplot(mixed.biggerspp,aes(x=reef,group=biggerspp,fill=biggerspp))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Bigger Species Is Rank 1")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none") 
+
+
+#to check the order of levels: 
+levels(mixed.biggerspp$reef)
+#change order of levels
+reef_order <- factor(mixed.biggerspp$reef, level = c('PNG', 'LI', 'OTI'))
+#create frequency plots of both factors
+ggplot(mixed.biggerspp,aes(x=reef_order,group=biggerspp,fill=biggerspp))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Bigger Species Is Rank 1")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none")
+
+#NOW SEE WHAT MIXED SPECIES GROUPS LOOK LIKE, WHETHER PAIRS OF EACH SPECIES, GROUPS OF EACH SPECIES, COMBO OF PAIRS OR GROUPS, SOLO INDIVIDUALS OF EACH SPECIES, ONE PAIRED SPECIES AND ONE SOLO INDIVDIUALS OF OTHER SPECIES
+
+
+#check covariates that I think are most important all together
+ft.mixed.mixtype = vglm(mixtype~ReefxYear,family=multinomial(refLevel="pairs"),data=mixed.mixtype)
+#get stats output
+summary(ft.mixed.mixtype)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.mixed.mixtype,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.mixed.mixtype)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.mixed) #not working properly b/c variable not numeric
+
+mixed.mixtype.prepost=subset(mixed.mixtype,mixed.mixtype$reef=="OTI")
+str(mixed.mixtype.prepost)
+
+#check covariates that I think are most important all together
+ft.mixed.mixtype = vglm(mixtype~year,family=multinomial(refLevel="pairs"),data=mixed.mixtype.prepost)
+#get stats output
+summary(ft.mixed.mixtype)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.mixed.mixtype,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.mixed.mixtype)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.mixed) #not working properly b/c variable not numeric
+
+
+mixed.mixtype.pre=subset(mixed.mixtype,mixed.mixtype$year !=2022)
+str(mixed.mixtype.pre)
+
+#check covariates that I think are most important all together
+ft.mixed.mixtype = vglm(mixtype~reef,family=multinomial(refLevel="pairs"),data=mixed.mixtype.pre)
+#get stats output
+summary(ft.mixed.mixtype)
+#do anova for multinomial regression which is in package: "car"
+Anova(ft.mixed.mixtype,type="II",test="Chisq")
+#get r squared values which are in package: "rcompanion"
+nagelkerke(ft.mixed.mixtype)
+#get likelihood ratio test which is in package: "lmtest"
+#lrtest(ft.mixed) #not working properly b/c variable not numeric
+
+#to check the order of levels: levels(mixedfigtest$dcsz)
+#create frequency plots of both factors
+ggplot(mixed.mixtype,aes(x=ReefxYear,group=mixtype,fill=mixtype))+
+  geom_histogram(stat="count",position=position_dodge(preserve="single"))+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Pattern Grouping Within Mixed")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  #remove legend
+  #theme(legend.position="none") 
+
+
+#to check the order of levels: 
+levels(mixed.mixtype$reef)
+levels(mixed.mixtype$ReefxYear)
+#change order of levels
+reef_order <- factor(mixed.mixtype$ReefxYear, level = c('PNG2018', 'LI2014', 'OTI2019','OTI2022'))
+#create frequency plots of both factors
+ggplot(mixed.mixtype,aes(x=reef_order,group=mixtype,fill=mixtype))+
+  geom_bar(position="fill")+
+  xlab('Reef')+
+  ylab('Proportion')+
+  #change legend title and labels
+  scale_fill_discrete(name = "Pattern Grouping Within Mixed")+
+  #remove background
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  #change colors of individual factors using http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  scale_fill_manual(values = c("springgreen4","orange","blue","maroon2","lightskyblue"))
+  #remove legend
+  #theme(legend.position="none")
+
+
+
+#MIXED SPECIES COLONIES SIZE RATIOS ANALYSIS
+
+
+#load specific packages within r for data manipulation and analysis
+list.of.packages <- c("lme4","car","tidyverse","ggpubr","LMERConvenienceFunctions","emmeans","piecewiseSEM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_mixedspphierarchies_v2_forsizeratios.csv")
+str(ratio.all)
+ratio.all = rename(ratio.all,!!c(coralsz = "Coral.Avg.Diameter..cm.",id="Coral.ID"))
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$reef = factor(ratio.all$reef)
+ratio.all$id = factor(ratio.all$id)
+ratio.all$rankstepnum = factor(ratio.all$rankstepnum)
+str(ratio.all)
+
+plot(ratio.all$coralsz,ratio.all$sizeratio)
+abline(lm(ratio.all$sizeratio~ratio.all$coralsz), col='red', main='Check the axis labels')
+
+plot(ratio.all$PopN,ratio.all$sizeratio)
+abline(lm(ratio.all$sizeratio~ratio.all$PopN), col='red', main='Check the axis labels')
+
+#get qq plot for specific variable
+qqnorm(ratio.all$sizeratio,main="Normal Q-Q Plot ratio.all$sizeratio")
+# add line through qq plot 
+qqline(ratio.all$sizeratio)
+#make histogram
+hist(ratio.all$sizeratio)
+#square root (sqrt( transform data
+ratio.all$sqrtsizeratio = sqrt(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqrtsizeratio, main="Normal Q-Q Plot ratio.all$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqrtsizeratio)
+#make histogram
+hist(ratio.all$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all$fortsizeratio = (ratio.all$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fortsizeratio, main="Normal Q-Q Plot ratio.all$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all$fortsizeratio)
+#make histogram
+hist(ratio.all$fortsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#square root (sq( transform data
+ratio.all$sqsizeratio = (ratio.all$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqsizeratio, main="Normal Q-Q Plot ratio.all$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqsizeratio)
+#make histogram
+hist(ratio.all$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all$fosizeratio = (ratio.all$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fosizeratio, main="Normal Q-Q Plot ratio.all$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all$fosizeratio)
+#make histogram
+hist(ratio.all$fosizeratio)
+#boxcox transform data
+ratio.all$bcoxsizeratio = boxCoxVariable(ratio.all$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all$bcoxsizeratio, main="Normal Q-Q Plot ratio.all$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all$bcoxsizeratio)
+#make histogram
+hist(ratio.all$bcoxsizeratio)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+#pairwise comparisons
+emm.rankstep <- emmeans(ft.glm.ratio.all.trim, spec= "rankstep") #calculate pop means
+summary(emm.rankstep)
+emm.rankstep_tuk = contrast(emm.rankstep,method = "pairwise") #posthoc testing
+summary(emm.rankstep_tuk) # display corrected p-values
+confint(emm.rankstep_tuk) #dispaly 95% conf. interval
+plot(emm.rankstep_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ rankstep, data = ratio.all.trim)
+
+#get means and standard error of function
+
+ratio.all.trim %>% group_by(rankstep) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep+reef+coralsz:rankstep+PopN:rankstep+coralsz:PopN, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep+reef +coralsz:rankstep+PopN:rankstep+coralsz:PopN, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+
+#plot boxplot with ggplot
+ggplot(ratio.all,aes(x=rankstepnum, y=sizeratio, color = rankstepnum)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  scale_x_discrete(labels=c("erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')+
+  xlab('Rankstep')
+
+
+#plot boxplot with ggplot
+ggplot(ratio.all.trim,aes(x=rankstepnum, y=sizeratio, color = rankstepnum)) +
+  geom_boxplot(fill="light grey",lwd=1,position=position_dodge2(width = 0.9, preserve = "single")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  #remove legend
+  theme(legend.position="none")+
+  #remove x-axis label title
+  theme(axis.text.x=element_text(size=20,colour = "black"),axis.text.y=element_text(size=20,colour = "black"))+
+  #make text bigger
+  theme(text = element_text(size=20))+
+  scale_x_discrete(labels=c("erythrospilus" = "G. erythrospilus", "fuscoruber" = "G. fuscoruber","histrio" = "G. histrio", "oculolineatus"="G. oculolineatus","quinquestrigatus"="G. quinquestrigatus","rivulatus"="G. rivulatus"))+
+  ylab('Size Ratios')+
+  xlab('Rankstep')
+
+
+#COMPARE SIZE RATIO OF RANKSTEP1 FOR MIXED SPECIES COLONIES (EACH SPECIES SEPARATED) VS SINGLE SPECIES COLONIES
+
+#load specific packages within r for data manipulation and analysis
+list.of.packages <- c("lme4","car","tidyverse","ggpubr","LMERConvenienceFunctions","emmeans","piecewiseSEM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratios_mixedVSsingle_v2_mixedbutbyspecies.csv")
+str(ratio.all)
+ratio.all = rename(ratio.all,!!c(coralsz = "Coral.Avg.Diameter..cm.",id="Coral.ID",spp="EthicsSpp"))
+ratio.all$spp=factor(ratio.all$spp)
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$reef = factor(ratio.all$reef)
+ratio.all$id = factor(ratio.all$id)
+ratio.all$rankstepnum = factor(ratio.all$rankstepnum)
+ratio.all$mixORsingle = factor(ratio.all$mixORsingle)
+str(ratio.all)
+
+
+#get qq plot for specific variable
+qqnorm(ratio.all$sizeratio,main="Normal Q-Q Plot ratio.all$sizeratio")
+# add line through qq plot 
+qqline(ratio.all$sizeratio)
+#make histogram
+hist(ratio.all$sizeratio)
+#square root (sqrt( transform data
+ratio.all$sqrtsizeratio = sqrt(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqrtsizeratio, main="Normal Q-Q Plot ratio.all$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqrtsizeratio)
+#make histogram
+hist(ratio.all$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all$fortsizeratio = (ratio.all$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fortsizeratio, main="Normal Q-Q Plot ratio.all$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all$fortsizeratio)
+#make histogram
+hist(ratio.all$fortsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#square root (sq( transform data
+ratio.all$sqsizeratio = (ratio.all$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqsizeratio, main="Normal Q-Q Plot ratio.all$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqsizeratio)
+#make histogram
+hist(ratio.all$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all$fosizeratio = (ratio.all$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fosizeratio, main="Normal Q-Q Plot ratio.all$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all$fosizeratio)
+#make histogram
+hist(ratio.all$fosizeratio)
+#boxcox transform data
+ratio.all$bcoxsizeratio = boxCoxVariable(ratio.all$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all$bcoxsizeratio, main="Normal Q-Q Plot ratio.all$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all$bcoxsizeratio)
+#make histogram
+hist(ratio.all$bcoxsizeratio)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep +spp+reef*mixORsingle+rankstep:mixORsingle, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep +spp+reef*mixORsingle+rankstep:mixORsingle, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+#pairwise comparisons
+emm.rankstep <- emmeans(ft.glm.ratio.all.trim, spec= "rankstep") #calculate pop means
+summary(emm.rankstep)
+emm.rankstep_tuk = contrast(emm.rankstep,method = "pairwise") #posthoc testing
+summary(emm.rankstep_tuk) # display corrected p-values
+confint(emm.rankstep_tuk) #dispaly 95% conf. interval
+plot(emm.rankstep_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ rankstep, data = ratio.all.trim)
+boxplot(sizeratio ~mixORsingle, data=ratio.all.trim)
+
+#get means and standard error of function
+
+ratio.all.trim %>% group_by(rankstep) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(rankstep,mixORsingle)%>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle,rankstep)%>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep+spp +coralsz:rankstep+PopN:rankstep+coralsz:PopN+reef*mixORsingle+rankstep:mixORsingle, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep+spp +coralsz:rankstep+PopN:rankstep+coralsz:PopN+reef*mixORsingle+rankstep*mixORsingle, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+
+#pairwise comparisons
+emm.rankstep <- emmeans(ft.glm.ratio.all.trim, spec= "rankstep") #calculate pop means
+summary(emm.rankstep)
+emm.rankstep_tuk = contrast(emm.rankstep,method = "pairwise") #posthoc testing
+summary(emm.rankstep_tuk) # display corrected p-values
+confint(emm.rankstep_tuk) #dispaly 95% conf. interval
+plot(emm.rankstep_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ rankstep, data = ratio.all.trim)
+boxplot(sizeratio ~mixORsingle, data=ratio.all.trim)
+
+ratio.all.trim %>% group_by(rankstep) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(rankstep,mixORsingle)%>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle,rankstep)%>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+
+
+#COMPARE SIZE RATIO OF RANKSTEP1 FOR MIXED SPECIES COLONIES (REGARDLESS OF SPECIES) VS SINGLE SPECIES COLONIES
+
+#load specific packages within r for data manipulation and analysis
+list.of.packages <- c("lme4","car","tidyverse","ggpubr","LMERConvenienceFunctions","emmeans","piecewiseSEM")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+#load specific packages of interest
+lapply(list.of.packages,library,character.only = TRUE)
+
+
+#ALL SPECIES COMBINED
+ratio.all=read.csv("GobyReefSysComp_sizeratios_mixedVSsingle_v1.csv")
+str(ratio.all)
+ratio.all = rename(ratio.all,!!c(coralsz = "Coral.Avg.Diameter..cm.",id="Coral.ID",spp="EthicsSpp"))
+ratio.all$spp=factor(ratio.all$spp)
+ratio.all$rankstep = factor(ratio.all$rankstep)
+ratio.all$reef = factor(ratio.all$reef)
+ratio.all$id = factor(ratio.all$id)
+ratio.all$rankstepnum = factor(ratio.all$rankstepnum)
+ratio.all$mixORsingle = factor(ratio.all$mixORsingle)
+str(ratio.all)
+
+
+#get qq plot for specific variable
+qqnorm(ratio.all$sizeratio,main="Normal Q-Q Plot ratio.all$sizeratio")
+# add line through qq plot 
+qqline(ratio.all$sizeratio)
+#make histogram
+hist(ratio.all$sizeratio)
+#square root (sqrt( transform data
+ratio.all$sqrtsizeratio = sqrt(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqrtsizeratio, main="Normal Q-Q Plot ratio.all$sqrtsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqrtsizeratio)
+#make histogram
+hist(ratio.all$sqrtsizeratio)
+#fourth root (fort) transform data
+ratio.all$fortsizeratio = (ratio.all$sizeratio)^(1/4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fortsizeratio, main="Normal Q-Q Plot ratio.all$fortsizeratio")
+# add line through qq plot 
+qqline(ratio.all$fortsizeratio)
+#make histogram
+hist(ratio.all$fortsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#log (log)transform data
+ratio.all$logsizeratio = log(ratio.all$sizeratio)
+#get qq plot for specific variable
+qqnorm(ratio.all$logsizeratio, main="Normal Q-Q Plot ratio.all$logsizeratio")
+# add line through qq plot 
+qqline(ratio.all$logsizeratio)
+#make histogram
+hist(ratio.all$logsizeratio)
+#square root (sq( transform data
+ratio.all$sqsizeratio = (ratio.all$sizeratio)^(2)
+#get qq plot for specific variable
+qqnorm(ratio.all$sqsizeratio, main="Normal Q-Q Plot ratio.all$sqsizeratio")
+# add line through qq plot 
+qqline(ratio.all$sqsizeratio)
+#make histogram
+hist(ratio.all$sqsizeratio)
+#fourth root (fo) transform data
+ratio.all$fosizeratio = (ratio.all$sizeratio)^(4)
+#get qq plot for specific variable
+qqnorm(ratio.all$fosizeratio, main="Normal Q-Q Plot ratio.all$fosizeratio")
+# add line through qq plot 
+qqline(ratio.all$fosizeratio)
+#make histogram
+hist(ratio.all$fosizeratio)
+#boxcox transform data
+ratio.all$bcoxsizeratio = boxCoxVariable(ratio.all$sizeratio)
+#get qq plot for specibcoxc variable
+qqnorm(ratio.all$bcoxsizeratio, main="Normal Q-Q Plot ratio.all$bcoxsizeratio")
+# add line through qq plot 
+qqline(ratio.all$bcoxsizeratio)
+#make histogram
+hist(ratio.all$bcoxsizeratio)
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep +reef*mixORsingle, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep +reef*mixORsingle, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+#pairwise comparisons
+emm.rankstep <- emmeans(ft.glm.ratio.all.trim, spec= "rankstep") #calculate pop means
+summary(emm.rankstep)
+emm.rankstep_tuk = contrast(emm.rankstep,method = "pairwise") #posthoc testing
+summary(emm.rankstep_tuk) # display corrected p-values
+confint(emm.rankstep_tuk) #dispaly 95% conf. interval
+plot(emm.rankstep_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ rankstep, data = ratio.all.trim)
+boxplot(sizeratio ~mixORsingle, data=ratio.all.trim)
+
+#get means and standard error of function
+
+ratio.all.trim %>% group_by(rankstep) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+
+#general linear mixed model with 2factors and no transformation using quasibinomial because data is proportions between 0 and 1
+ft.glm.ratio.all = glm(fosizeratio ~ coralsz + PopN + rankstep +coralsz:rankstep+PopN:rankstep+coralsz:PopN+reef*mixORsingle, data = ratio.all, family = quasibinomial)
+anova(ft.glm.ratio.all,test = "Chisq") 
+summary(ft.glm.ratio.all)
+plot(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+rsquared(ft.glm.ratio.all)
+
+
+#check for outliers and remove them. 
+ratio.all.trim = romr.fnc(ft.glm.ratio.all, ratio.all, trim = 2.5)
+ratio.all.trim =ratio.all.trim$data
+
+#general linear mixed model with factors and no transformation
+ft.glm.ratio.all.trim = glm(fosizeratio ~ coralsz + PopN + rankstep +coralsz:rankstep+PopN:rankstep+coralsz:PopN+reef*mixORsingle, data = ratio.all.trim, family = quasibinomial)
+anova(ft.glm.ratio.all.trim,test="Chisq")
+summary(ft.glm.ratio.all.trim)
+plot(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+rsquared(ft.glm.ratio.all.trim)
+
+
+#pairwise comparisons
+emm.rankstep <- emmeans(ft.glm.ratio.all.trim, spec= "rankstep") #calculate pop means
+summary(emm.rankstep)
+emm.rankstep_tuk = contrast(emm.rankstep,method = "pairwise") #posthoc testing
+summary(emm.rankstep_tuk) # display corrected p-values
+confint(emm.rankstep_tuk) #dispaly 95% conf. interval
+plot(emm.rankstep_tuk, xlab = "Difference in sizeratioXspp") # display 95% confidenc einterval
+
+boxplot(sizeratio ~ rankstep, data = ratio.all.trim)
+boxplot(sizeratio ~mixORsingle, data=ratio.all.trim)
+
+ratio.all.trim %>% group_by(rankstep) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+ratio.all.trim %>% group_by(mixORsingle) %>%
+  summarise(meansizeratio = mean(na.omit(sizeratio)), sesizeratio=sd(na.omit(sizeratio))/sqrt(n()))
+
+```
+
